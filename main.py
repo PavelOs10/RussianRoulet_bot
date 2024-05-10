@@ -101,7 +101,7 @@ def handle_fire(update, context):
     
 # Основная функция, запускающая бота и обработчики сообщений
 def main():
-    updater = Updater(token='7004037923:AAEqUxhHSpvOEiw6Yv8GRjyuM87lnQz1iVI', use_context=True)  # Создаем объект Updater с указанием токена
+    updater = Updater(token='TOKEN', use_context=True)  # Создаем объект Updater с указанием токена
     dp = updater.dispatcher  # Получаем диспетчер для регистрации обработчиков
     conv_handler = ConversationHandler(  # Создаем объект ConversationHandler для управления состояниями беседы
         entry_points=[CommandHandler('start', start)],  # Начальное состояние - вызов команды /start
