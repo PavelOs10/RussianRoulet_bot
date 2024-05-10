@@ -1,6 +1,7 @@
 import random
 import time
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Updater, CommandHandler, ConversationHandler, CallbackQueryHandler, MessageHandler, Filters
 
 WEAPON_CHOICE = 1
 FIRE = 2
@@ -31,7 +32,7 @@ def handle_choice(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text=f"Ты выбрал {weapon_name}")
         context.bot.send_message(chat_id=update.effective_chat.id, text="Игра начинается...")
         time.sleep(1)  
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Нажми ОГОНЬ для выстрела...")
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Нажми ОГОНЬ для выстрела...", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("ОГОНЬ", callback_data="fire")]]))
         return FIRE
     elif choice == "4":
         context.user_data['weapon_name'] = "Пистолет Макарова"
@@ -40,41 +41,60 @@ def handle_choice(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text="Ты выбрал Пистолет Макарова")
         context.bot.send_message(chat_id=update.effective_chat.id, text="Игра начинается...")
         time.sleep(1) 
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Нажми ОГОНЬ для выстрела...")
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Нажми ОГОНЬ для выстрела...", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("ОГОНЬ", callback_data="fire")]]))
         return FIRE
     else:
         context.bot.send_message(chat_id=update.effective_chat.id, text="Неверный выбор. Выбери число от 1 до 4.")
         return WEAPON_CHOICE
 
-def handle_fire(update, context):
-    if update.message.text.upper() == "ОГОНЬ!":
-        time.sleep(2)  # задержка 2 секунды
-        chambers = context.user_data['chambers']
-        name = context.user_data['name']
-        weapon_name = context.user_data['weapon_name']
-        empty_chambers = len(chambers) - 1
+def handle_fire_text(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Нажми ОГОНЬ для выстрела...", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("ОГОНЬ", callback_data="fire")]]))
+    return FIRE
 
-        current_chamber = chambers.pop(0)  # удаляем и возвращаем первый элемент списка
 
-        if current_chamber == 1:
-            update.message.reply_text("БАХ!")
-            if weapon_name == "Пистолет Макарова":
-                update.message.reply_text(f"Ты проиграл, {name}! Ты реально хотел играть в русскую рулетку пистолетом Макарова?")
-                return start(update, context)
-            else:
-                update.message.reply_text(f"Ты проиграл, {name}!")
-                return start(update, context)
-        else:
-            empty_chambers -= 1
-            update.message.reply_text(f"Фух, ты выжил, {name}!")
-            if empty_chambers == 0:
-                update.message.reply_text(f"В стволе остался один боевой патрон! Ты выиграл, {name}!")
-                return start(update, context)
-            else:
-                update.message.reply_text("Нажмите ОГОНЬ для выстрела...")  # Сообщение для следующего выстрела
+def start_over(update, context):
+    user = update.effective_user  # Получаем объект пользователя
+    chat_id = update.effective_chat.id  # Получаем идентификатор чата
+    if user:
+        context.user_data['name'] = user.first_name  # Получаем имя пользователя
     else:
-        update.message.reply_text("Неверный выбор. Нажми ОГОНЬ для выстрела...")
+        context.user_data['name'] = "Unknown"  # Если имя пользователя недоступно, устанавливаем "Unknown"
+    context.bot.send_message(chat_id=chat_id, text=f"Привет, {context.user_data['name']}! Сыграем в русскую рулетку?")
+    time.sleep(1)
+    context.bot.send_message(chat_id=chat_id, text="Выбери оружие:\n1. Colt Python (6 камор)\n2. Smith & Wesson Model 29 (5 камор)\n3. Taurus Judge (3 каморы)\n4. Пистолет Макарова (магазин)")
+    return WEAPON_CHOICE
 
+def handle_fire(update, context):
+    if update.callback_query:
+        if update.callback_query.data == "fire":
+            time.sleep(2)  # задержка 2 секунды
+            chambers = context.user_data['chambers']
+            name = context.user_data['name']
+            weapon_name = context.user_data['weapon_name']
+            empty_chambers = len(chambers) - 1
+
+            current_chamber = chambers.pop(0)  # удаляем и возвращаем первый элемент списка
+
+            if current_chamber == 1:
+                context.bot.send_message(chat_id=update.effective_chat.id, text="БАХ!")
+                if weapon_name == "Пистолет Макарова":
+                    context.bot.send_message(chat_id=update.effective_chat.id, text=f"Ты проиграл, {name}! Ты реально хотел играть в русскую рулетку пистолетом Макарова?", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Начать заново?", callback_data="start_over")]]))
+                else:
+                    context.bot.send_message(chat_id=update.effective_chat.id, text=f"Ты проиграл, {name}!", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Начать заново?", callback_data="start_over")]]))
+            else:
+                empty_chambers -= 1
+                context.bot.send_message(chat_id=update.effective_chat.id, text=f"Фух, ты выжил, {name}!")
+                if empty_chambers == 0:
+                    context.bot.send_message(chat_id=update.effective_chat.id, text=f"В стволе остался один боевой патрон! Ты выиграл, {name}!", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Начать заново?", callback_data="start_over")]]))
+                else:
+                    context.bot.send_message(chat_id=update.effective_chat.id, text="Нажми ОГОНЬ для выстрела...", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("ОГОНЬ", callback_data="fire")]]))  # Сообщение для следующего выстрела
+                    return FIRE
+        elif update.callback_query.data == "start_over":
+            return start_over(update, context)
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Неверный выбор. Нажми ОГОНЬ для выстрела...", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("ОГОНЬ", callback_data="fire")]]))
+        return FIRE
+    
 def main():
     updater = Updater(token='7004037923:AAEqUxhHSpvOEiw6Yv8GRjyuM87lnQz1iVI', use_context=True)
     dp = updater.dispatcher
@@ -82,7 +102,10 @@ def main():
         entry_points=[CommandHandler('start', start)],
         states={
             WEAPON_CHOICE: [MessageHandler(Filters.text & ~Filters.command, handle_choice)],
-            FIRE: [MessageHandler(Filters.text & ~Filters.command, handle_fire)]
+            FIRE: [
+                CallbackQueryHandler(handle_fire),
+                MessageHandler(Filters.text & ~Filters.command, handle_fire_text)
+            ]
         },
         fallbacks=[],
     )
