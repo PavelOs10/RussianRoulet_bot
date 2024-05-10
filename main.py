@@ -1,5 +1,5 @@
 import random
-from telegram import ReplyKeyboardMarkup, KeyboardButton
+from telegram import ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
 
 WEAPON_CHOICE = 1
@@ -30,8 +30,15 @@ def handle_choice(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text=f"Вы выбрали {weapon_name}")
         context.bot.send_message(chat_id=update.effective_chat.id, text="Игра начинается...")
         return FIRE
+    elif choice == "4":
+        context.user_data['weapon_name'] = "Пистолет Макарова"
+        chambers = [1]  # в пистолете Макарова одна камера с боевым патроном
+        context.user_data['chambers'] = chambers
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Вы выбрали Пистолет Макарова")
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Игра начинается...")
+        return FIRE
     else:
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Неверный выбор. Пожалуйста, введите число от 1 до 4.")
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Неверный выбор. Пожалуйста, выберите число от 1 до 4.")
         return WEAPON_CHOICE
 
 def play_game(update, context):
@@ -41,14 +48,19 @@ def handle_fire(update, context):
     if update.message.text.upper() == "F":
         chambers = context.user_data['chambers']
         name = context.user_data['name']
+        weapon_name = context.user_data['weapon_name']
         empty_chambers = len(chambers) - 1
 
         current_chamber = chambers.pop(0)  # удаляем и возвращаем первый элемент списка
 
         if current_chamber == 1:
             update.message.reply_text("БАХ!")
-            update.message.reply_text(f"Вы проиграли, {name}!")
-            return start(update, context)
+            if weapon_name == "Пистолет Макарова":
+                update.message.reply_text(f"Вы проиграли, {name}! Ваш пистолет Макарова пуст.")
+                return start(update, context)
+            else:
+                update.message.reply_text(f"Вы проиграли, {name}!")
+                return start(update, context)
         else:
             empty_chambers -= 1
             update.message.reply_text(f"Фух, вы выжили, {name}!")
