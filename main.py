@@ -1,5 +1,4 @@
 import random
-from telegram import ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
 
 WEAPON_CHOICE = 1
@@ -29,20 +28,19 @@ def handle_choice(update, context):
         context.user_data['chambers'] = chambers
         context.bot.send_message(chat_id=update.effective_chat.id, text=f"Вы выбрали {weapon_name}")
         context.bot.send_message(chat_id=update.effective_chat.id, text="Игра начинается...")
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Нажмите F для выстрела...")
         return FIRE
     elif choice == "4":
         context.user_data['weapon_name'] = "Пистолет Макарова"
-        chambers = [1]  # в пистолете Макарова одна камера с боевым патроном
+        chambers = [0, 1]  # в пистолете Макарова одна камера с боевым патроном
         context.user_data['chambers'] = chambers
         context.bot.send_message(chat_id=update.effective_chat.id, text="Вы выбрали Пистолет Макарова")
         context.bot.send_message(chat_id=update.effective_chat.id, text="Игра начинается...")
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Нажмите F для выстрела...")
         return FIRE
     else:
         context.bot.send_message(chat_id=update.effective_chat.id, text="Неверный выбор. Пожалуйста, выберите число от 1 до 4.")
         return WEAPON_CHOICE
-
-def play_game(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Нажмите F для выстрела...")
 
 def handle_fire(update, context):
     if update.message.text.upper() == "F":
@@ -67,6 +65,8 @@ def handle_fire(update, context):
             if empty_chambers == 0:
                 update.message.reply_text(f"В стволе остался один боевой патрон! Вы выиграли, {name}!")
                 return start(update, context)
+            else:
+                update.message.reply_text("Нажмите F для выстрела...")  # Сообщение для следующего выстрела
     else:
         update.message.reply_text("Неверный выбор. Нажмите F для выстрела...")
 
